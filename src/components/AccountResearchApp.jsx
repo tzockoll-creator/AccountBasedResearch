@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter } from 'lucide-react';
+import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown } from 'lucide-react';
+import { generatePDF } from '../utils/pdfExport';
 
 // Persona definitions with their priority themes
 const PERSONAS = [
@@ -232,6 +233,19 @@ const AccountResearchApp = () => {
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [showAllThemes, setShowAllThemes] = useState(true);
   const [fastMode, setFastMode] = useState(false); // Skip web search for speed
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!research) return;
+    setIsExporting(true);
+    try {
+      await generatePDF(research, selectedPersona);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const toggleTheme = (themeId) => {
     setExpandedThemes(prev => ({
@@ -546,6 +560,23 @@ Remember: Output ONLY the JSON object, nothing else.`;
                     <span>{research.industry}</span>
                   </div>
                 </div>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-orange-600 rounded-lg font-medium text-sm hover:from-red-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="w-4 h-4" />
+                      Export PDF
+                    </>
+                  )}
+                </button>
               </div>
               
               <p className="text-slate-300 mb-4">{research.summary}</p>
