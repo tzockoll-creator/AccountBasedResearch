@@ -1,56 +1,81 @@
 import React, { useState } from 'react';
-import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Radar, Briefcase } from 'lucide-react';
+import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Radar, Briefcase, Layers, Clock, Unlock, Database, Star, GitBranch, Gauge } from 'lucide-react';
 
 // ============================================
-// COMPETITIVE DETECTION (inlined)
+// COMPETITIVE DETECTION (inlined) - Enhanced with vendor mapping & displacement scoring
 // ============================================
 
 const TOOLS = {
-  'Tableau': { category: 'BI Platform', vendor: 'Salesforce' },
-  'Power BI': { category: 'BI Platform', vendor: 'Microsoft' },
-  'Looker': { category: 'BI Platform', vendor: 'Google' },
-  'Qlik': { category: 'BI Platform', vendor: 'Qlik' },
-  'QlikView': { category: 'BI Platform', vendor: 'Qlik' },
-  'Qlik Sense': { category: 'BI Platform', vendor: 'Qlik' },
-  'MicroStrategy': { category: 'BI Platform', vendor: 'Strategy' },
-  'Domo': { category: 'BI Platform', vendor: 'Domo' },
-  'Sisense': { category: 'BI Platform', vendor: 'Sisense' },
-  'ThoughtSpot': { category: 'BI Platform', vendor: 'ThoughtSpot' },
-  'Mode': { category: 'BI Platform', vendor: 'ThoughtSpot' },
-  'Metabase': { category: 'BI Platform', vendor: 'Open Source' },
-  'Superset': { category: 'BI Platform', vendor: 'Apache' },
-  'Sigma': { category: 'BI Platform', vendor: 'Sigma Computing' },
-  'Snowflake': { category: 'Data Platform', vendor: 'Snowflake' },
-  'Databricks': { category: 'Data Platform', vendor: 'Databricks' },
-  'BigQuery': { category: 'Data Platform', vendor: 'Google' },
-  'Redshift': { category: 'Data Platform', vendor: 'AWS' },
-  'Synapse': { category: 'Data Platform', vendor: 'Microsoft' },
-  'Azure Synapse': { category: 'Data Platform', vendor: 'Microsoft' },
-  'Teradata': { category: 'Data Platform', vendor: 'Teradata' },
-  'Vertica': { category: 'Data Platform', vendor: 'OpenText' },
-  'Informatica': { category: 'Data Integration', vendor: 'Informatica' },
-  'Talend': { category: 'Data Integration', vendor: 'Qlik' },
-  'Fivetran': { category: 'Data Integration', vendor: 'Fivetran' },
-  'dbt': { category: 'Data Integration', vendor: 'dbt Labs' },
-  'Airbyte': { category: 'Data Integration', vendor: 'Open Source' },
-  'Matillion': { category: 'Data Integration', vendor: 'Matillion' },
-  'Alation': { category: 'Data Governance', vendor: 'Alation' },
-  'Collibra': { category: 'Data Governance', vendor: 'Collibra' },
-  'Atlan': { category: 'Data Governance', vendor: 'Atlan' },
+  'Tableau': { category: 'BI Platform', vendor: 'Salesforce', tier: 'enterprise', age: 'mature' },
+  'Power BI': { category: 'BI Platform', vendor: 'Microsoft', tier: 'enterprise', age: 'mature' },
+  'Looker': { category: 'BI Platform', vendor: 'Google', tier: 'enterprise', age: 'mature' },
+  'Qlik': { category: 'BI Platform', vendor: 'Qlik', tier: 'enterprise', age: 'legacy' },
+  'QlikView': { category: 'BI Platform', vendor: 'Qlik', tier: 'enterprise', age: 'legacy' },
+  'Qlik Sense': { category: 'BI Platform', vendor: 'Qlik', tier: 'enterprise', age: 'mature' },
+  'MicroStrategy': { category: 'BI Platform', vendor: 'Strategy', tier: 'enterprise', age: 'mature' },
+  'Domo': { category: 'BI Platform', vendor: 'Domo', tier: 'mid-market', age: 'mature' },
+  'Sisense': { category: 'BI Platform', vendor: 'Sisense', tier: 'mid-market', age: 'mature' },
+  'ThoughtSpot': { category: 'BI Platform', vendor: 'ThoughtSpot', tier: 'enterprise', age: 'modern' },
+  'Mode': { category: 'BI Platform', vendor: 'ThoughtSpot', tier: 'mid-market', age: 'modern' },
+  'Metabase': { category: 'BI Platform', vendor: 'Open Source', tier: 'departmental', age: 'modern' },
+  'Superset': { category: 'BI Platform', vendor: 'Apache', tier: 'departmental', age: 'modern' },
+  'Sigma': { category: 'BI Platform', vendor: 'Sigma Computing', tier: 'mid-market', age: 'modern' },
+  'SAP BusinessObjects': { category: 'BI Platform', vendor: 'SAP', tier: 'enterprise', age: 'legacy' },
+  'BusinessObjects': { category: 'BI Platform', vendor: 'SAP', tier: 'enterprise', age: 'legacy' },
+  'Cognos': { category: 'BI Platform', vendor: 'IBM', tier: 'enterprise', age: 'legacy' },
+  'IBM Cognos': { category: 'BI Platform', vendor: 'IBM', tier: 'enterprise', age: 'legacy' },
+  'OBIEE': { category: 'BI Platform', vendor: 'Oracle', tier: 'enterprise', age: 'legacy' },
+  'Oracle BI': { category: 'BI Platform', vendor: 'Oracle', tier: 'enterprise', age: 'legacy' },
+  'Snowflake': { category: 'Data Platform', vendor: 'Snowflake', tier: 'enterprise', age: 'modern' },
+  'Databricks': { category: 'Data Platform', vendor: 'Databricks', tier: 'enterprise', age: 'modern' },
+  'BigQuery': { category: 'Data Platform', vendor: 'Google', tier: 'enterprise', age: 'modern' },
+  'Redshift': { category: 'Data Platform', vendor: 'AWS', tier: 'enterprise', age: 'mature' },
+  'Synapse': { category: 'Data Platform', vendor: 'Microsoft', tier: 'enterprise', age: 'mature' },
+  'Azure Synapse': { category: 'Data Platform', vendor: 'Microsoft', tier: 'enterprise', age: 'mature' },
+  'Teradata': { category: 'Data Platform', vendor: 'Teradata', tier: 'enterprise', age: 'legacy' },
+  'Vertica': { category: 'Data Platform', vendor: 'OpenText', tier: 'enterprise', age: 'legacy' },
+  'Informatica': { category: 'Data Integration', vendor: 'Informatica', tier: 'enterprise', age: 'mature' },
+  'Talend': { category: 'Data Integration', vendor: 'Qlik', tier: 'mid-market', age: 'mature' },
+  'Fivetran': { category: 'Data Integration', vendor: 'Fivetran', tier: 'mid-market', age: 'modern' },
+  'dbt': { category: 'Data Integration', vendor: 'dbt Labs', tier: 'mid-market', age: 'modern' },
+  'Airbyte': { category: 'Data Integration', vendor: 'Open Source', tier: 'departmental', age: 'modern' },
+  'Matillion': { category: 'Data Integration', vendor: 'Matillion', tier: 'mid-market', age: 'modern' },
+  'SSIS': { category: 'Data Integration', vendor: 'Microsoft', tier: 'enterprise', age: 'legacy' },
+  'DataStage': { category: 'Data Integration', vendor: 'IBM', tier: 'enterprise', age: 'legacy' },
+  'Alation': { category: 'Data Governance', vendor: 'Alation', tier: 'enterprise', age: 'modern' },
+  'Collibra': { category: 'Data Governance', vendor: 'Collibra', tier: 'enterprise', age: 'mature' },
+  'Atlan': { category: 'Data Governance', vendor: 'Atlan', tier: 'mid-market', age: 'modern' },
+};
+
+const VENDOR_METADATA = {
+  'Salesforce': { ecosystem: 'Salesforce Cloud', lockInFactors: ['CRM integration', 'Salesforce ecosystem'], displacement: { difficulty: 'high', reason: 'Deep CRM integration makes switching costly' } },
+  'Microsoft': { ecosystem: 'Microsoft Azure / M365', lockInFactors: ['M365 licensing', 'Azure ecosystem'], displacement: { difficulty: 'high', reason: 'Bundled with E5 licensing, tight Office integration' } },
+  'Google': { ecosystem: 'Google Cloud', lockInFactors: ['BigQuery native', 'GCP ecosystem'], displacement: { difficulty: 'medium', reason: 'Strong if on GCP, otherwise more portable' } },
+  'Qlik': { ecosystem: 'Qlik Cloud', lockInFactors: ['QVD files', 'Proprietary engine'], displacement: { difficulty: 'medium', reason: 'Proprietary data format creates friction' } },
+  'SAP': { ecosystem: 'SAP Enterprise', lockInFactors: ['ERP integration', 'HANA database'], displacement: { difficulty: 'high', reason: 'Deep ERP integration, often mandated by IT' } },
+  'IBM': { ecosystem: 'IBM Cloud / On-prem', lockInFactors: ['Mainframe integration', 'Legacy contracts'], displacement: { difficulty: 'medium', reason: 'Legacy tech creates modernization opportunity' } },
+  'Oracle': { ecosystem: 'Oracle Cloud / On-prem', lockInFactors: ['Oracle DB integration', 'Licensing terms'], displacement: { difficulty: 'medium', reason: 'Often bundled with database licensing' } },
+  'Snowflake': { ecosystem: 'Multi-cloud', lockInFactors: ['Data sharing', 'Marketplace'], displacement: { difficulty: 'low', reason: 'Data platform, not BI - complementary to Strategy' } },
+  'Databricks': { ecosystem: 'Multi-cloud', lockInFactors: ['Delta format', 'Unity Catalog'], displacement: { difficulty: 'low', reason: 'Data platform, not BI - complementary to Strategy' } },
+  'ThoughtSpot': { ecosystem: 'Cloud-native', lockInFactors: ['Search-based UI', 'SpotIQ'], displacement: { difficulty: 'medium', reason: 'Modern competitor, strong in search analytics' } },
+  'Domo': { ecosystem: 'Cloud-native', lockInFactors: ['Proprietary connectors'], displacement: { difficulty: 'low', reason: 'Often used at department level, easier to displace' } },
+  'Sisense': { ecosystem: 'Cloud / Embedded', lockInFactors: ['Embedded analytics'], displacement: { difficulty: 'low', reason: 'Strong in embedded, less enterprise adoption' } },
+  'Strategy': { ecosystem: 'Multi-cloud / On-prem', lockInFactors: ['Semantic layer'], displacement: { difficulty: 'n/a', reason: 'Our product - upsell opportunity' } },
+  'Open Source': { ecosystem: 'Self-hosted', lockInFactors: ['Customizations'], displacement: { difficulty: 'low', reason: 'No vendor contract, easier to replace' } }
 };
 
 const enrichToolData = (toolMentions) => {
   const totalMentions = Object.values(toolMentions).reduce((a, b) => a + b, 0);
   return Object.entries(toolMentions)
     .map(([toolName, count]) => {
-      const toolInfo = TOOLS[toolName] || { category: 'Unknown', vendor: 'Unknown' };
+      const toolInfo = TOOLS[toolName] || { category: 'Unknown', vendor: 'Unknown', tier: 'unknown', age: 'unknown' };
       let confidence = 'Low';
       if (count >= 3 || (totalMentions > 0 && count / totalMentions >= 0.3)) {
         confidence = 'High';
       } else if (count >= 2 || (totalMentions > 0 && count / totalMentions >= 0.15)) {
         confidence = 'Medium';
       }
-      return { name: toolName, mentions: count, confidence, category: toolInfo.category, vendor: toolInfo.vendor };
+      return { name: toolName, mentions: count, confidence, category: toolInfo.category, vendor: toolInfo.vendor, tier: toolInfo.tier, age: toolInfo.age };
     })
     .sort((a, b) => b.mentions - a.mentions);
 };
@@ -90,6 +115,87 @@ const getStrategicImplications = (enrichedTools) => {
     });
   }
   return implications;
+};
+
+// Vendor relationship mapping (4.2)
+const buildVendorMap = (enrichedTools) => {
+  const vendorMap = {};
+  enrichedTools.forEach(tool => {
+    const vendor = tool.vendor;
+    if (!vendorMap[vendor]) {
+      const metadata = VENDOR_METADATA[vendor] || { ecosystem: 'Unknown', lockInFactors: [], displacement: { difficulty: 'unknown', reason: 'No data' } };
+      vendorMap[vendor] = { ...metadata, detectedTools: [], totalMentions: 0, categories: new Set() };
+    }
+    vendorMap[vendor].detectedTools.push(tool);
+    vendorMap[vendor].totalMentions += tool.mentions;
+    vendorMap[vendor].categories.add(tool.category);
+  });
+  Object.keys(vendorMap).forEach(vendor => {
+    vendorMap[vendor].categories = Array.from(vendorMap[vendor].categories);
+    let score = Math.min(vendorMap[vendor].detectedTools.length * 15, 45) + Math.min(vendorMap[vendor].totalMentions * 5, 30) + vendorMap[vendor].categories.length * 10;
+    vendorMap[vendor].detectedTools.forEach(tool => { if (tool.tier === 'enterprise') score += 10; });
+    vendorMap[vendor].strength = Math.min(score, 100);
+  });
+  return vendorMap;
+};
+
+// Displacement opportunity scoring (4.3)
+const calculateDisplacementScore = (enrichedTools, vendorMap) => {
+  const factors = [];
+  let score = 0;
+  const biTools = enrichedTools.filter(t => t.category === 'BI Platform');
+  const legacyTools = enrichedTools.filter(t => t.age === 'legacy');
+  const hasStrategy = enrichedTools.some(t => t.vendor === 'Strategy');
+
+  if (biTools.length > 1) {
+    const fragScore = Math.min(biTools.length * 15, 30);
+    score += fragScore;
+    factors.push({ name: 'BI Tool Fragmentation', score: fragScore, detail: `${biTools.length} different BI platforms - consolidation opportunity`, icon: 'layers' });
+  }
+  if (legacyTools.length > 0) {
+    const legacyScore = Math.min(legacyTools.length * 12, 25);
+    score += legacyScore;
+    factors.push({ name: 'Legacy Modernization', score: legacyScore, detail: `${legacyTools.length} legacy tools (${legacyTools.map(t => t.name).join(', ')})`, icon: 'clock' });
+  }
+  const lowLockIn = Object.entries(vendorMap).filter(([, d]) => d.displacement?.difficulty === 'low').map(([v]) => v);
+  if (lowLockIn.length > 0) {
+    const lockInScore = Math.min(lowLockIn.length * 10, 20);
+    score += lockInScore;
+    factors.push({ name: 'Low Switching Cost', score: lockInScore, detail: `Easy targets: ${lowLockIn.join(', ')}`, icon: 'unlock' });
+  }
+  const hasGovernance = enrichedTools.some(t => t.category === 'Data Governance');
+  if (!hasGovernance && biTools.length > 0) {
+    score += 15;
+    factors.push({ name: 'Governance Gap', score: 15, detail: 'No data governance tool - semantic layer opportunity', icon: 'shield' });
+  }
+  const hasModernData = enrichedTools.some(t => t.category === 'Data Platform' && (t.name === 'Snowflake' || t.name === 'Databricks'));
+  const hasEnterpriseBI = biTools.some(t => t.tier === 'enterprise' && t.vendor !== 'Strategy');
+  if (hasModernData && !hasEnterpriseBI) {
+    score += 10;
+    factors.push({ name: 'Data Platform Ready', score: 10, detail: 'Modern data platform, needs enterprise BI', icon: 'database' });
+  }
+  if (hasStrategy) {
+    score = Math.max(score - 20, 20);
+    factors.push({ name: 'Existing Customer', score: -20, detail: 'Already using Strategy - focus on expansion', icon: 'star' });
+  }
+
+  let opportunityLevel, recommendation;
+  if (score >= 70) { opportunityLevel = 'High'; recommendation = 'Strong displacement opportunity.'; }
+  else if (score >= 45) { opportunityLevel = 'Medium'; recommendation = 'Moderate opportunity. Focus on pain points.'; }
+  else if (score >= 25) { opportunityLevel = 'Low'; recommendation = 'Limited immediate opportunity.'; }
+  else { opportunityLevel = 'Minimal'; recommendation = 'Low priority target.'; }
+
+  return {
+    score: Math.min(Math.max(score, 0), 100),
+    opportunityLevel,
+    recommendation,
+    factors,
+    primaryTargets: biTools.filter(t => t.vendor !== 'Strategy').map(t => ({
+      tool: t.name, vendor: t.vendor,
+      difficulty: VENDOR_METADATA[t.vendor]?.displacement?.difficulty || 'unknown',
+      reason: VENDOR_METADATA[t.vendor]?.displacement?.reason || 'No data'
+    }))
+  };
 };
 
 const detectCompetitiveTools = async (companyName) => {
@@ -282,6 +388,8 @@ const AccountResearchApp = () => {
     try {
       const data = await detectCompetitiveTools(research.companyName);
       data.implications = getStrategicImplications(data.enrichedTools || []);
+      data.vendorMap = buildVendorMap(data.enrichedTools || []);
+      data.displacementScore = calculateDisplacementScore(data.enrichedTools || [], data.vendorMap);
       setCompetitiveData(data);
     } catch (err) {
       setScanError(err.message);
@@ -601,6 +709,90 @@ Remember: Output ONLY the JSON object, nothing else.`;
                       </div>
                     </div>
                   )}
+                  {/* Displacement Opportunity Score */}
+                  {competitiveData.displacementScore && (
+                    <div className="border-t border-slate-700 pt-4">
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2"><Gauge className="w-4 h-4" />Displacement Opportunity</h4>
+                      <div className="bg-slate-900/50 rounded-lg p-4">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className={`text-4xl font-bold ${competitiveData.displacementScore.opportunityLevel === 'High' ? 'text-emerald-400' : competitiveData.displacementScore.opportunityLevel === 'Medium' ? 'text-amber-400' : 'text-slate-400'}`}>
+                            {competitiveData.displacementScore.score}
+                          </div>
+                          <div className="flex-1">
+                            <div className={`text-sm font-semibold ${competitiveData.displacementScore.opportunityLevel === 'High' ? 'text-emerald-400' : competitiveData.displacementScore.opportunityLevel === 'Medium' ? 'text-amber-400' : 'text-slate-400'}`}>
+                              {competitiveData.displacementScore.opportunityLevel} Opportunity
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">{competitiveData.displacementScore.recommendation}</p>
+                          </div>
+                        </div>
+                        {competitiveData.displacementScore.factors?.length > 0 && (
+                          <div className="space-y-2 mb-4">
+                            <h5 className="text-xs text-slate-500 uppercase">Contributing Factors</h5>
+                            {competitiveData.displacementScore.factors.map((factor, idx) => {
+                              const IconComp = factor.icon === 'layers' ? Layers : factor.icon === 'clock' ? Clock : factor.icon === 'unlock' ? Unlock : factor.icon === 'shield' ? Shield : factor.icon === 'database' ? Database : factor.icon === 'star' ? Star : Target;
+                              return (
+                                <div key={idx} className="flex items-center gap-3 bg-slate-800/50 rounded p-2">
+                                  <IconComp className={`w-4 h-4 ${factor.score > 0 ? 'text-emerald-400' : 'text-amber-400'}`} />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-slate-300">{factor.name}</span>
+                                      <span className={`text-xs font-medium ${factor.score > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{factor.score > 0 ? '+' : ''}{factor.score}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500">{factor.detail}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {competitiveData.displacementScore.primaryTargets?.length > 0 && (
+                          <div>
+                            <h5 className="text-xs text-slate-500 uppercase mb-2">Primary Targets</h5>
+                            <div className="space-y-2">
+                              {competitiveData.displacementScore.primaryTargets.map((target, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-slate-800/50 rounded p-2">
+                                  <div className="flex items-center gap-2">
+                                    <Target className="w-4 h-4 text-red-400" />
+                                    <span className="text-sm font-medium text-slate-200">{target.tool}</span>
+                                    <span className="text-xs text-slate-500">({target.vendor})</span>
+                                  </div>
+                                  <span className={`text-xs px-2 py-0.5 rounded ${target.difficulty === 'low' ? 'bg-emerald-900/50 text-emerald-300' : target.difficulty === 'medium' ? 'bg-amber-900/50 text-amber-300' : 'bg-red-900/50 text-red-300'}`}>
+                                    {target.difficulty}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vendor Relationships */}
+                  {competitiveData.vendorMap && Object.keys(competitiveData.vendorMap).length > 0 && (
+                    <div className="border-t border-slate-700 pt-4">
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2"><GitBranch className="w-4 h-4" />Vendor Relationships</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {Object.entries(competitiveData.vendorMap).sort((a, b) => b[1].strength - a[1].strength).map(([vendor, data]) => (
+                          <div key={vendor} className="bg-slate-900/50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-slate-200">{vendor}</span>
+                              <span className="text-xs text-slate-500">{data.ecosystem}</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-700 rounded-full mb-2">
+                              <div className={`h-full rounded-full ${data.strength >= 70 ? 'bg-red-500' : data.strength >= 40 ? 'bg-amber-500' : 'bg-slate-500'}`} style={{ width: `${data.strength}%` }} />
+                            </div>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {data.detectedTools.map((tool, idx) => (<span key={idx} className="text-xs px-1.5 py-0.5 bg-slate-700 rounded text-slate-300">{tool.name}</span>))}
+                            </div>
+                            {data.lockInFactors?.length > 0 && <div className="text-xs text-slate-500"><span className="text-slate-400">Lock-in:</span> {data.lockInFactors.slice(0, 2).join(', ')}</div>}
+                            {data.displacement && <div className={`text-xs mt-1 ${data.displacement.difficulty === 'low' ? 'text-emerald-400' : data.displacement.difficulty === 'medium' ? 'text-amber-400' : 'text-red-400'}`}>{data.displacement.reason}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {competitiveData.summary && <p className="text-sm text-slate-400 italic border-t border-slate-700 pt-3">{competitiveData.summary}</p>}
                 </div>
               )}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase, ExternalLink, RefreshCw, FileSearch, Scale } from 'lucide-react';
+import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase, ExternalLink, RefreshCw, FileSearch, Scale, Layers, Clock, Unlock, Database, Star, GitBranch, Gauge } from 'lucide-react';
 import { generatePDF } from '../utils/pdfExport';
-import { detectCompetitiveTools, getStrategicImplications } from '../utils/competitiveDetection';
+import { detectCompetitiveTools, getStrategicImplications, buildVendorMap, calculateDisplacementScore } from '../utils/competitiveDetection';
 import { searchNewsWithClaude, THEME_NAMES } from '../utils/newsSearch';
 import { analyzeSecFilings, RISK_CATEGORIES } from '../utils/secEdgar';
 
@@ -284,6 +284,10 @@ const AccountResearchApp = () => {
     try {
       const data = await detectCompetitiveTools(research.companyName);
       data.implications = getStrategicImplications(data.enrichedTools || []);
+      // Build vendor relationship map (4.2)
+      data.vendorMap = buildVendorMap(data.enrichedTools || []);
+      // Calculate displacement opportunity score (4.3)
+      data.displacementScore = calculateDisplacementScore(data.enrichedTools || [], data.vendorMap);
       setCompetitiveData(data);
     } catch (err) {
       console.error('Competitive scan failed:', err);
@@ -959,6 +963,151 @@ Remember: Output ONLY the JSON object, nothing else.`;
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Displacement Opportunity Score (4.3) */}
+                  {competitiveData.displacementScore && (
+                    <div className="border-t border-slate-700 pt-4">
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <Gauge className="w-4 h-4" />
+                        Displacement Opportunity Score
+                      </h4>
+                      <div className="bg-slate-900/50 rounded-lg p-4">
+                        {/* Score Display */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className={`text-4xl font-bold ${
+                            competitiveData.displacementScore.opportunityLevel === 'High' ? 'text-emerald-400' :
+                            competitiveData.displacementScore.opportunityLevel === 'Medium' ? 'text-amber-400' :
+                            competitiveData.displacementScore.opportunityLevel === 'Low' ? 'text-orange-400' :
+                            'text-slate-400'
+                          }`}>
+                            {competitiveData.displacementScore.score}
+                          </div>
+                          <div className="flex-1">
+                            <div className={`text-sm font-semibold ${
+                              competitiveData.displacementScore.opportunityLevel === 'High' ? 'text-emerald-400' :
+                              competitiveData.displacementScore.opportunityLevel === 'Medium' ? 'text-amber-400' :
+                              competitiveData.displacementScore.opportunityLevel === 'Low' ? 'text-orange-400' :
+                              'text-slate-400'
+                            }`}>
+                              {competitiveData.displacementScore.opportunityLevel} Opportunity
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {competitiveData.displacementScore.recommendation}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Score Factors */}
+                        {competitiveData.displacementScore.factors?.length > 0 && (
+                          <div className="space-y-2 mb-4">
+                            <h5 className="text-xs text-slate-500 uppercase">Contributing Factors</h5>
+                            {competitiveData.displacementScore.factors.map((factor, idx) => {
+                              const IconComponent = factor.icon === 'layers' ? Layers :
+                                                   factor.icon === 'clock' ? Clock :
+                                                   factor.icon === 'unlock' ? Unlock :
+                                                   factor.icon === 'shield' ? Shield :
+                                                   factor.icon === 'database' ? Database :
+                                                   factor.icon === 'star' ? Star : Target;
+                              return (
+                                <div key={idx} className="flex items-center gap-3 bg-slate-800/50 rounded p-2">
+                                  <IconComponent className={`w-4 h-4 ${factor.score > 0 ? 'text-emerald-400' : 'text-amber-400'}`} />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-slate-300">{factor.name}</span>
+                                      <span className={`text-xs font-medium ${factor.score > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                        {factor.score > 0 ? '+' : ''}{factor.score}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500">{factor.detail}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Primary Targets */}
+                        {competitiveData.displacementScore.primaryTargets?.length > 0 && (
+                          <div>
+                            <h5 className="text-xs text-slate-500 uppercase mb-2">Primary Displacement Targets</h5>
+                            <div className="space-y-2">
+                              {competitiveData.displacementScore.primaryTargets.map((target, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-slate-800/50 rounded p-2">
+                                  <div className="flex items-center gap-2">
+                                    <Target className="w-4 h-4 text-red-400" />
+                                    <span className="text-sm font-medium text-slate-200">{target.tool}</span>
+                                    <span className="text-xs text-slate-500">({target.vendor})</span>
+                                  </div>
+                                  <span className={`text-xs px-2 py-0.5 rounded ${
+                                    target.difficulty === 'low' ? 'bg-emerald-900/50 text-emerald-300' :
+                                    target.difficulty === 'medium' ? 'bg-amber-900/50 text-amber-300' :
+                                    'bg-red-900/50 text-red-300'
+                                  }`}>
+                                    {target.difficulty} difficulty
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vendor Relationship Map (4.2) */}
+                  {competitiveData.vendorMap && Object.keys(competitiveData.vendorMap).length > 0 && (
+                    <div className="border-t border-slate-700 pt-4">
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <GitBranch className="w-4 h-4" />
+                        Vendor Relationships
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {Object.entries(competitiveData.vendorMap)
+                          .sort((a, b) => b[1].strength - a[1].strength)
+                          .map(([vendor, data]) => (
+                            <div key={vendor} className="bg-slate-900/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-slate-200">{vendor}</span>
+                                <span className="text-xs text-slate-500">{data.ecosystem}</span>
+                              </div>
+                              {/* Vendor Strength Bar */}
+                              <div className="h-1.5 bg-slate-700 rounded-full mb-2">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    data.strength >= 70 ? 'bg-red-500' :
+                                    data.strength >= 40 ? 'bg-amber-500' :
+                                    'bg-slate-500'
+                                  }`}
+                                  style={{ width: `${data.strength}%` }}
+                                />
+                              </div>
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {data.detectedTools.map((tool, idx) => (
+                                  <span key={idx} className="text-xs px-1.5 py-0.5 bg-slate-700 rounded text-slate-300">
+                                    {tool.name}
+                                  </span>
+                                ))}
+                              </div>
+                              {data.lockInFactors?.length > 0 && (
+                                <div className="text-xs text-slate-500">
+                                  <span className="text-slate-400">Lock-in:</span> {data.lockInFactors.slice(0, 2).join(', ')}
+                                </div>
+                              )}
+                              {data.displacement && (
+                                <div className={`text-xs mt-1 ${
+                                  data.displacement.difficulty === 'low' ? 'text-emerald-400' :
+                                  data.displacement.difficulty === 'medium' ? 'text-amber-400' :
+                                  data.displacement.difficulty === 'high' ? 'text-red-400' :
+                                  'text-slate-400'
+                                }`}>
+                                  {data.displacement.reason}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                       </div>
                     </div>
                   )}
