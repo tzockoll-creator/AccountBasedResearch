@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase, ExternalLink, RefreshCw, FileSearch, Scale } from 'lucide-react';
 import { generatePDF } from '../utils/pdfExport';
 import { detectCompetitiveTools, getStrategicImplications } from '../utils/competitiveDetection';
 import { searchNewsWithClaude, THEME_NAMES } from '../utils/newsSearch';
+import { analyzeSecFilings, RISK_CATEGORIES } from '../utils/secEdgar';
 
 // Persona definitions with their priority themes
 const PERSONAS = [
@@ -242,6 +243,24 @@ const AccountResearchApp = () => {
   const [newsData, setNewsData] = useState(null);
   const [isNewsScanning, setIsNewsScanning] = useState(false);
   const [newsError, setNewsError] = useState(null);
+  const [secData, setSecData] = useState(null);
+  const [isSecScanning, setIsSecScanning] = useState(false);
+  const [secError, setSecError] = useState(null);
+
+  const handleSecScan = async () => {
+    if (!research?.companyName) return;
+    setIsSecScanning(true);
+    setSecError(null);
+    try {
+      const data = await analyzeSecFilings(research.companyName, research.ticker);
+      setSecData(data);
+    } catch (err) {
+      console.error('SEC scan failed:', err);
+      setSecError(err.message);
+    } finally {
+      setIsSecScanning(false);
+    }
+  };
 
   const handleNewsScan = async () => {
     if (!research?.companyName) return;
@@ -313,6 +332,8 @@ const AccountResearchApp = () => {
     setScanError(null);
     setNewsData(null);
     setNewsError(null);
+    setSecData(null);
+    setSecError(null);
     setLoadingStatus('Analyzing company data...');
 
     try {
@@ -635,6 +656,187 @@ Remember: Output ONLY the JSON object, nothing else.`;
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+            </div>
+
+            {/* SEC Filings Analysis */}
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-slate-400 flex items-center gap-2">
+                  <FileSearch className="w-4 h-4" />
+                  SEC FILINGS (10-K / 10-Q)
+                </h3>
+                <button
+                  onClick={handleSecScan}
+                  disabled={isSecScanning}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                >
+                  {isSecScanning ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Analyzing filings...
+                    </>
+                  ) : (
+                    <>
+                      <Scale className="w-3 h-3" />
+                      Scan SEC Filings
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {secError && (
+                <p className="text-red-400 text-sm mb-3">{secError}</p>
+              )}
+
+              {!secData && !isSecScanning && !secError && (
+                <p className="text-slate-500 text-sm italic">
+                  {research.ticker
+                    ? `Scan SEC EDGAR for ${research.companyName} (${research.ticker}) filings`
+                    : `Scan SEC EDGAR for ${research.companyName} filings (if public)`
+                  }
+                </p>
+              )}
+
+              {secData && (
+                <div className="space-y-4">
+                  {/* Private company notice */}
+                  {secData.isPrivate && (
+                    <div className="bg-amber-900/30 border border-amber-700 rounded-lg p-3">
+                      <p className="text-amber-300 text-sm">{secData.summary}</p>
+                    </div>
+                  )}
+
+                  {/* Filings found */}
+                  {secData.filings && secData.filings.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Filings Analyzed</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {secData.filings.map((filing, idx) => (
+                          <a
+                            key={idx}
+                            href={filing.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs transition-all"
+                          >
+                            <FileText className="w-3 h-3 text-blue-400" />
+                            <span className="font-medium">{filing.type}</span>
+                            <span className="text-slate-400">FY{filing.fiscalYear}</span>
+                            <ExternalLink className="w-3 h-3 text-slate-500" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Business Description */}
+                  {secData.businessDescription && !secData.isPrivate && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Business Overview</h4>
+                      <p className="text-sm text-slate-300 bg-slate-900/50 rounded p-3">
+                        {secData.businessDescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Risk Factors */}
+                  {secData.riskFactors && secData.riskFactors.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">
+                        Key Risk Factors ({secData.riskFactors.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {secData.riskFactors.slice(0, 5).map((risk, idx) => (
+                          <div key={idx} className="bg-slate-900/50 rounded p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span>{RISK_CATEGORIES[risk.category] || '📋'}</span>
+                              <span className="text-xs text-slate-400 uppercase">{risk.category}</span>
+                            </div>
+                            <p className="text-sm text-slate-300">{risk.risk}</p>
+                            {risk.quote && (
+                              <p className="text-xs text-slate-500 italic mt-2 border-l-2 border-slate-600 pl-2">
+                                "{risk.quote}"
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MD&A Highlights */}
+                  {secData.mdaHighlights && secData.mdaHighlights.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">MD&A Highlights</h4>
+                      <div className="space-y-2">
+                        {secData.mdaHighlights.map((highlight, idx) => (
+                          <div key={idx} className="bg-slate-900/50 rounded p-3">
+                            <span className="text-xs text-blue-400 font-medium">{highlight.topic}</span>
+                            <p className="text-sm text-slate-300 mt-1">{highlight.insight}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Technology Mentions */}
+                  {secData.technologyMentions && secData.technologyMentions.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Technology & Data Mentions</h4>
+                      <div className="space-y-2">
+                        {secData.technologyMentions.map((mention, idx) => (
+                          <div key={idx} className="bg-slate-900/50 rounded p-3">
+                            <span className="text-xs text-emerald-400 font-medium">{mention.topic}</span>
+                            <p className="text-sm text-slate-300 mt-1">{mention.context}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strategic Initiatives */}
+                  {secData.strategicInitiatives && secData.strategicInitiatives.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Strategic Initiatives</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {secData.strategicInitiatives.map((initiative, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-violet-900/30 text-violet-300 rounded text-xs">
+                            {initiative}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Theme Relevance from SEC */}
+                  {secData.themeRelevance && Object.keys(secData.themeRelevance).length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Theme Signals from Filings</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(secData.themeRelevance)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([themeId, count]) => {
+                            const theme = GTM_THEMES.find(t => t.id === themeId);
+                            return (
+                              <div key={themeId} className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded text-xs">
+                                {theme && <theme.icon className="w-3 h-3 text-blue-400" />}
+                                <span className="text-slate-300">{theme?.name}</span>
+                                <span className="text-slate-500">({count})</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {secData.summary && !secData.isPrivate && (
+                    <p className="text-sm text-slate-400 italic border-t border-slate-700 pt-3">
+                      {secData.summary}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
