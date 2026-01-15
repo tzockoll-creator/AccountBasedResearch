@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter } from 'lucide-react';
+import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase } from 'lucide-react';
+import { generatePDF } from '../utils/pdfExport';
+import { detectCompetitiveTools, getStrategicImplications } from '../utils/competitiveDetection';
 
 // Persona definitions with their priority themes
 const PERSONAS = [
@@ -232,6 +234,38 @@ const AccountResearchApp = () => {
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [showAllThemes, setShowAllThemes] = useState(true);
   const [fastMode, setFastMode] = useState(false); // Skip web search for speed
+  const [isExporting, setIsExporting] = useState(false);
+  const [competitiveData, setCompetitiveData] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState(null);
+
+  const handleCompetitiveScan = async () => {
+    if (!research?.companyName) return;
+    setIsScanning(true);
+    setScanError(null);
+    try {
+      const data = await detectCompetitiveTools(research.companyName);
+      data.implications = getStrategicImplications(data.enrichedTools || []);
+      setCompetitiveData(data);
+    } catch (err) {
+      console.error('Competitive scan failed:', err);
+      setScanError(err.message);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!research) return;
+    setIsExporting(true);
+    try {
+      await generatePDF(research, selectedPersona);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const toggleTheme = (themeId) => {
     setExpandedThemes(prev => ({
@@ -256,6 +290,8 @@ const AccountResearchApp = () => {
     setIsLoading(true);
     setError(null);
     setResearch(null);
+    setCompetitiveData(null);
+    setScanError(null);
     setLoadingStatus('Analyzing company data...');
 
     try {
@@ -546,6 +582,23 @@ Remember: Output ONLY the JSON object, nothing else.`;
                     <span>{research.industry}</span>
                   </div>
                 </div>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-orange-600 rounded-lg font-medium text-sm hover:from-red-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="w-4 h-4" />
+                      Export PDF
+                    </>
+                  )}
+                </button>
               </div>
               
               <p className="text-slate-300 mb-4">{research.summary}</p>
@@ -575,6 +628,127 @@ Remember: Output ONLY the JSON object, nothing else.`;
                 <p className="text-sm">{research.competitiveContext}</p>
               </div>
             )}
+
+            {/* Competitive Install Detection */}
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-slate-400 flex items-center gap-2">
+                  <Radar className="w-4 h-4" />
+                  TECH STACK DETECTION
+                </h3>
+                <button
+                  onClick={handleCompetitiveScan}
+                  disabled={isScanning}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                >
+                  {isScanning ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Scanning jobs...
+                    </>
+                  ) : (
+                    <>
+                      <Briefcase className="w-3 h-3" />
+                      Scan Job Postings
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {scanError && (
+                <p className="text-red-400 text-sm mb-3">{scanError}</p>
+              )}
+
+              {!competitiveData && !isScanning && !scanError && (
+                <p className="text-slate-500 text-sm italic">
+                  Scan job postings to detect BI/analytics tools in use at {research.companyName}
+                </p>
+              )}
+
+              {competitiveData && (
+                <div className="space-y-4">
+                  {/* Detected Tools */}
+                  {competitiveData.enrichedTools && competitiveData.enrichedTools.length > 0 ? (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Detected Tools</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {competitiveData.enrichedTools.map((tool, idx) => (
+                          <div
+                            key={idx}
+                            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 ${
+                              tool.confidence === 'High'
+                                ? 'bg-emerald-900/50 border border-emerald-700 text-emerald-300'
+                                : tool.confidence === 'Medium'
+                                ? 'bg-amber-900/50 border border-amber-700 text-amber-300'
+                                : 'bg-slate-700 border border-slate-600 text-slate-300'
+                            }`}
+                          >
+                            <span className="font-medium">{tool.name}</span>
+                            <span className="text-xs opacity-70">({tool.category})</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              tool.confidence === 'High' ? 'bg-emerald-700' :
+                              tool.confidence === 'Medium' ? 'bg-amber-700' : 'bg-slate-600'
+                            }`}>
+                              {tool.confidence}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-sm">No specific tools detected from job postings</p>
+                  )}
+
+                  {/* Job Postings Found */}
+                  {competitiveData.jobPostings && competitiveData.jobPostings.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Sample Job Postings</h4>
+                      <div className="space-y-2">
+                        {competitiveData.jobPostings.slice(0, 3).map((job, idx) => (
+                          <div key={idx} className="bg-slate-900/50 rounded p-2 text-sm">
+                            <span className="font-medium text-slate-200">{job.title}</span>
+                            {job.tools && job.tools.length > 0 && (
+                              <span className="text-slate-400 ml-2">
+                                — {job.tools.join(', ')}
+                              </span>
+                            )}
+                            <span className="text-slate-500 text-xs ml-2">({job.source})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strategic Implications */}
+                  {competitiveData.implications && competitiveData.implications.length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Strategic Implications</h4>
+                      <div className="space-y-2">
+                        {competitiveData.implications.map((imp, idx) => {
+                          const theme = GTM_THEMES.find(t => t.id === imp.theme);
+                          return (
+                            <div key={idx} className="bg-slate-900/50 rounded p-3 text-sm">
+                              <div className="flex items-center gap-2 mb-1">
+                                {theme && <theme.icon className="w-4 h-4 text-red-400" />}
+                                <span className="font-medium text-slate-300">{theme?.name}</span>
+                              </div>
+                              <p className="text-slate-400">{imp.insight}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {competitiveData.summary && (
+                    <p className="text-sm text-slate-400 italic border-t border-slate-700 pt-3">
+                      {competitiveData.summary}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Recent News */}
             {research.recentNews && research.recentNews.length > 0 && (
