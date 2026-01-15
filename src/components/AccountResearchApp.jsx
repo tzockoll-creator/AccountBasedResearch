@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase } from 'lucide-react';
+import { Search, Building2, TrendingUp, TrendingDown, Shield, Zap, DollarSign, Users, FileText, Newspaper, Loader2, ChevronDown, ChevronUp, Target, AlertTriangle, Lightbulb, Shuffle, User, Filter, FileDown, Radar, Briefcase, ExternalLink, RefreshCw } from 'lucide-react';
 import { generatePDF } from '../utils/pdfExport';
 import { detectCompetitiveTools, getStrategicImplications } from '../utils/competitiveDetection';
+import { searchNewsWithClaude, THEME_NAMES } from '../utils/newsSearch';
 
 // Persona definitions with their priority themes
 const PERSONAS = [
@@ -238,6 +239,24 @@ const AccountResearchApp = () => {
   const [competitiveData, setCompetitiveData] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
+  const [newsData, setNewsData] = useState(null);
+  const [isNewsScanning, setIsNewsScanning] = useState(false);
+  const [newsError, setNewsError] = useState(null);
+
+  const handleNewsScan = async () => {
+    if (!research?.companyName) return;
+    setIsNewsScanning(true);
+    setNewsError(null);
+    try {
+      const data = await searchNewsWithClaude(research.companyName);
+      setNewsData(data);
+    } catch (err) {
+      console.error('News scan failed:', err);
+      setNewsError(err.message);
+    } finally {
+      setIsNewsScanning(false);
+    }
+  };
 
   const handleCompetitiveScan = async () => {
     if (!research?.companyName) return;
@@ -292,6 +311,8 @@ const AccountResearchApp = () => {
     setResearch(null);
     setCompetitiveData(null);
     setScanError(null);
+    setNewsData(null);
+    setNewsError(null);
     setLoadingStatus('Analyzing company data...');
 
     try {
@@ -750,23 +771,145 @@ Remember: Output ONLY the JSON object, nothing else.`;
               )}
             </div>
 
-            {/* Recent News */}
-            {research.recentNews && research.recentNews.length > 0 && (
-              <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                <h3 className="font-semibold text-sm text-slate-400 mb-2 flex items-center gap-2">
+            {/* Recent News - Enhanced */}
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-slate-400 flex items-center gap-2">
                   <Newspaper className="w-4 h-4" />
                   RECENT NEWS
                 </h3>
-                <ul className="space-y-1">
-                  {research.recentNews.map((news, idx) => (
-                    <li key={idx} className="text-sm flex items-start gap-2">
-                      <span className="text-orange-400">•</span>
-                      <span>{news}</span>
-                    </li>
-                  ))}
-                </ul>
+                <button
+                  onClick={handleNewsScan}
+                  disabled={isNewsScanning}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                >
+                  {isNewsScanning ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Scanning news...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3 h-3" />
+                      Scan Latest News
+                    </>
+                  )}
+                </button>
               </div>
-            )}
+
+              {newsError && (
+                <p className="text-red-400 text-sm mb-3">{newsError}</p>
+              )}
+
+              {/* Show basic news from initial research if no detailed scan yet */}
+              {!newsData && !isNewsScanning && !newsError && research.recentNews && research.recentNews.length > 0 && (
+                <div>
+                  <ul className="space-y-1 mb-3">
+                    {research.recentNews.map((news, idx) => (
+                      <li key={idx} className="text-sm flex items-start gap-2">
+                        <span className="text-orange-400">•</span>
+                        <span>{news}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-slate-500 text-xs italic">Click "Scan Latest News" for detailed articles with theme analysis</p>
+                </div>
+              )}
+
+              {!newsData && !isNewsScanning && !newsError && (!research.recentNews || research.recentNews.length === 0) && (
+                <p className="text-slate-500 text-sm italic">
+                  Scan for recent news articles about {research.companyName}
+                </p>
+              )}
+
+              {/* Detailed news from scan */}
+              {newsData && (
+                <div className="space-y-4">
+                  {/* Theme distribution */}
+                  {newsData.themeCounts && Object.keys(newsData.themeCounts).length > 0 && (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">News Theme Distribution</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(newsData.themeCounts)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([themeId, count]) => {
+                            const theme = GTM_THEMES.find(t => t.id === themeId);
+                            return (
+                              <div key={themeId} className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded text-xs">
+                                {theme && <theme.icon className="w-3 h-3 text-orange-400" />}
+                                <span className="text-slate-300">{THEME_NAMES[themeId]}</span>
+                                <span className="text-slate-500">({count})</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Articles list */}
+                  {newsData.articles && newsData.articles.length > 0 ? (
+                    <div>
+                      <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">
+                        Recent Articles ({newsData.articles.length})
+                      </h4>
+                      <div className="space-y-3">
+                        {newsData.articles.slice(0, 8).map((article, idx) => (
+                          <div key={idx} className="bg-slate-900/50 rounded p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h5 className="text-sm font-medium text-slate-200 flex-1">
+                                {article.headline}
+                              </h5>
+                              {article.url && (
+                                <a
+                                  href={article.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-slate-500 hover:text-orange-400 transition-colors"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                              <span>{article.source}</span>
+                              <span>•</span>
+                              <span>{article.date}</span>
+                            </div>
+                            {article.summary && (
+                              <p className="text-sm text-slate-400 mt-2">{article.summary}</p>
+                            )}
+                            {article.themes && article.themes.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {article.themes.map(themeId => {
+                                  const theme = GTM_THEMES.find(t => t.id === themeId);
+                                  return (
+                                    <span
+                                      key={themeId}
+                                      className="text-xs px-1.5 py-0.5 bg-orange-900/30 text-orange-300 rounded"
+                                    >
+                                      {THEME_NAMES[themeId]}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-sm">No recent articles found</p>
+                  )}
+
+                  {/* Summary */}
+                  {newsData.summary && (
+                    <p className="text-sm text-slate-400 italic border-t border-slate-700 pt-3">
+                      {newsData.summary}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* GTM Theme Mapping */}
             <div>
