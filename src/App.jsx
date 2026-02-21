@@ -71,14 +71,15 @@ export default function App() {
     const startTime = Date.now();
 
     try {
-      // Run both searches in parallel
+      // Run searches sequentially to avoid rate limits
       setSearchMode('leads');
-      const [leadsData, intelData] = await Promise.all([
-        findWarmLeads(company, productConfig, { signal: controller.signal })
-          .catch(err => ({ _error: err.message, leads: [] })),
-        researchCompany(company, productConfig, { signal: controller.signal })
-          .catch(err => ({ _error: err.message }))
-      ]);
+      const leadsData = await findWarmLeads(company, productConfig, { signal: controller.signal })
+        .catch(err => ({ _error: err.message, leads: [] }));
+      setLeadsResult(leadsData);
+
+      setSearchMode('intel');
+      const intelData = await researchCompany(company, productConfig, { signal: controller.signal })
+        .catch(err => ({ _error: err.message }));
 
       const elapsed = Math.round((Date.now() - startTime) / 1000);
       setSearchDuration(elapsed);

@@ -6,7 +6,7 @@
  */
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-haiku-4-5-20251001';
 
 function getApiKey() {
   return import.meta.env.VITE_ANTHROPIC_API_KEY || '';
@@ -16,12 +16,29 @@ function buildHeaders() {
   const apiKey = getApiKey();
   const headers = {
     'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
     'anthropic-dangerous-direct-browser-access': 'true'
   };
   if (apiKey) {
     headers['x-api-key'] = apiKey;
   }
   return headers;
+}
+
+/**
+ * Retry-aware fetch that handles 429 rate limits with backoff
+ */
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.status === 429 && attempt < maxRetries) {
+      const retryAfter = response.headers.get('retry-after');
+      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (attempt + 1) * 15000;
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+      continue;
+    }
+    return response;
+  }
 }
 
 /**
@@ -119,7 +136,7 @@ Remember: Output ONLY the JSON object, nothing else.`;
   }
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetchWithRetry(API_URL, {
       method: 'POST',
       headers: buildHeaders(),
       signal: controller.signal,
@@ -239,7 +256,7 @@ Remember: Output ONLY the JSON object, nothing else. Quality over quantity — 3
   }
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetchWithRetry(API_URL, {
       method: 'POST',
       headers: buildHeaders(),
       signal: controller.signal,

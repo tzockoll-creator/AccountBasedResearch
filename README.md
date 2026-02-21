@@ -4,6 +4,8 @@ AI-powered account research tool that analyzes companies and maps findings to yo
 
 ![Strategy Account Research](https://img.shields.io/badge/Strategy-Account%20Research-red)
 
+![Demo](bespokeprospecttool-ezgif.com-video-to-gif-converter.gif)
+
 ## What It Does
 
 1. **Ingests** public data about target accounts (10-Ks, news, earnings calls, press releases)
