@@ -1,0 +1,42 @@
+{
+  "company": "HEB",
+  "description": "Private grocery chain, limited public data — stress test for fabrication",
+  "expectedMinLeads": 0,
+  "knownRoles": [
+    "VP",
+    "Director",
+    "Data Engineer",
+    "Analytics",
+    "BI",
+    "Technology"
+  ],
+  "productConfig": {
+    "productName": "Strategy (MicroStrategy)",
+    "capabilities": [
+      "Governed AI Analytics",
+      "Semantic Layer / Single Source of Truth",
+      "Self-Service BI with Guardrails",
+      "Cloud-Agnostic Architecture",
+      "Enterprise Security & Compliance"
+    ],
+    "painPoints": [
+      "inconsistent metrics across teams",
+      "BI tool sprawl",
+      "AI hallucinations from ungoverned data",
+      "cloud cost overruns",
+      "analytics backlog",
+      "data governance gaps",
+      "vendor lock-in concerns",
+      "shadow analytics",
+      "slow time-to-insight",
+      "compliance and audit risks"
+    ],
+    "targetRoles": [
+      "CDO / CTO / CIO / VP Data",
+      "Director / Head of Data & Analytics",
+      "Data Architect / Principal Engineer",
+      "Senior Data Engineer / Analytics Engineer",
+      "BI Developer / Report Developer"
+    ]
+  }
+}
