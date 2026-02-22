@@ -26,5 +26,8 @@ npm-debug.log*
 # Testing
 coverage/
 
+# Eval results
+evals/results/
+
 # Misc
 *.local
