@@ -142,7 +142,7 @@ export default function App() {
             WarmLead AI
           </h1>
           <p className="text-slate-400 text-sm">
-            Find people publicly signaling the pain points your product solves
+            Define your product's capabilities and target pain points — AI finds real prospects publicly talking about the problems you solve
           </p>
         </div>
 
