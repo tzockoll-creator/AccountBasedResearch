@@ -1,18 +1,12 @@
 /**
  * Buyer Persona Configuration
- * 
+ *
  * Customize these personas to match your target buyers.
- * Each persona includes:
- * - id: Unique identifier
- * - name: Display name
- * - title: Full title
- * - icon: Emoji for quick recognition
- * - priorities: Array of theme IDs in priority order (first = most important)
- * - cares: What this persona cares about
- * - avoids: What this persona wants to avoid
  */
 
-export const PERSONAS = [
+import type { Persona, GtmTheme } from '../types';
+
+export const PERSONAS: Persona[] = [
   {
     id: 'cio',
     name: 'CIO / CTO',
@@ -69,23 +63,18 @@ export const PERSONAS = [
   }
 ];
 
-/**
- * Get persona by ID
- */
-export const getPersonaById = (id) => PERSONAS.find(p => p.id === id);
+/** Get persona by ID */
+export const getPersonaById = (id: string): Persona | undefined =>
+  PERSONAS.find(p => p.id === id);
 
-/**
- * Get all persona IDs
- */
-export const getPersonaIds = () => PERSONAS.map(p => p.id);
+/** Get all persona IDs */
+export const getPersonaIds = (): string[] => PERSONAS.map(p => p.id);
 
-/**
- * Get themes prioritized for a persona
- */
-export const getPersonaThemes = (personaId, allThemes) => {
+/** Get themes prioritized for a persona */
+export const getPersonaThemes = (personaId: string, allThemes: GtmTheme[]): GtmTheme[] => {
   const persona = getPersonaById(personaId);
   if (!persona) return allThemes;
-  
+
   return [...allThemes].sort((a, b) => {
     const aIdx = persona.priorities.indexOf(a.id);
     const bIdx = persona.priorities.indexOf(b.id);

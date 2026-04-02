@@ -1,6 +1,6 @@
 /**
  * GTM Theme Configuration
- * 
+ *
  * Customize these themes to match your company's go-to-market messaging.
  * Each theme includes:
  * - id: Unique identifier (used in code)
@@ -11,7 +11,9 @@
  * - signals: Keywords Claude looks for when analyzing companies
  */
 
-export const GTM_THEMES = [
+import type { GtmTheme } from '../types';
+
+export const GTM_THEMES: GtmTheme[] = [
   {
     id: 'governed-ai',
     name: 'Governed AI',
@@ -173,12 +175,9 @@ export const GTM_THEMES = [
   }
 ];
 
-/**
- * Get theme by ID
- */
-export const getThemeById = (id) => GTM_THEMES.find(t => t.id === id);
+/** Get theme by ID */
+export const getThemeById = (id: string): GtmTheme | undefined =>
+  GTM_THEMES.find(t => t.id === id);
 
-/**
- * Get all theme IDs
- */
-export const getThemeIds = () => GTM_THEMES.map(t => t.id);
+/** Get all theme IDs */
+export const getThemeIds = (): string[] => GTM_THEMES.map(t => t.id);

@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Building2, Newspaper, Cpu, TrendingUp, Target, FileText } from 'lucide-react';
+import type { CompanyResearchResult, CapabilityMapping } from '../types';
 
-export default function CompanyIntel({ research }) {
+interface CompanyIntelProps {
+  research: CompanyResearchResult | null;
+}
+
+export default function CompanyIntel({ research }: CompanyIntelProps) {
   if (!research) {
     return (
       <div className="text-center py-12">
@@ -14,13 +19,13 @@ export default function CompanyIntel({ research }) {
   return (
     <div className="space-y-5">
       {/* Company Header */}
-      <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+      <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shrink-0">
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-white">{research.companyName}</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">{research.companyName}</h2>
             <div className="flex items-center gap-3 text-slate-400 mt-1 flex-wrap">
               {research.ticker && (
                 <span className="bg-slate-700 px-2 py-0.5 rounded text-xs font-mono">
@@ -41,7 +46,7 @@ export default function CompanyIntel({ research }) {
 
       {/* Key Insights */}
       {research.keyInsights && research.keyInsights.length > 0 && (
-        <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+        <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in" style={{ animationDelay: '100ms' }}>
           <h3 className="font-semibold text-sm text-slate-400 mb-3 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             KEY INSIGHTS
@@ -49,7 +54,7 @@ export default function CompanyIntel({ research }) {
           <ul className="space-y-2">
             {research.keyInsights.map((insight, idx) => (
               <li key={idx} className="flex items-start gap-2 text-sm">
-                <span className="text-red-400 mt-0.5 shrink-0">&#8594;</span>
+                <span className="text-indigo-400 mt-0.5 shrink-0">&#8594;</span>
                 <span className="text-slate-300">{insight}</span>
               </li>
             ))}
@@ -59,7 +64,7 @@ export default function CompanyIntel({ research }) {
 
       {/* Tech Stack */}
       {research.techStack && (
-        <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+        <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in" style={{ animationDelay: '200ms' }}>
           <h3 className="font-semibold text-sm text-slate-400 mb-3 flex items-center gap-2">
             <Cpu className="w-4 h-4" />
             TECH STACK SIGNALS
@@ -96,7 +101,7 @@ export default function CompanyIntel({ research }) {
 
       {/* Capability Mapping */}
       {research.capabilityMapping && research.capabilityMapping.length > 0 && (
-        <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+        <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in" style={{ animationDelay: '300ms' }}>
           <h3 className="font-semibold text-sm text-slate-400 mb-3 flex items-center gap-2">
             <Target className="w-4 h-4" />
             CAPABILITY RELEVANCE
@@ -113,7 +118,7 @@ export default function CompanyIntel({ research }) {
 
       {/* Data Initiatives */}
       {research.dataInitiatives && research.dataInitiatives.length > 0 && (
-        <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+        <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in" style={{ animationDelay: '400ms' }}>
           <h3 className="font-semibold text-sm text-slate-400 mb-3 flex items-center gap-2">
             <FileText className="w-4 h-4" />
             DATA & TECH INITIATIVES
@@ -131,7 +136,7 @@ export default function CompanyIntel({ research }) {
 
       {/* Competitive Context */}
       {research.competitiveContext && (
-        <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+        <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in" style={{ animationDelay: '500ms' }}>
           <h3 className="font-semibold text-sm text-slate-400 mb-3 flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             COMPETITIVE LANDSCAPE
@@ -142,7 +147,7 @@ export default function CompanyIntel({ research }) {
 
       {/* Recent News */}
       {research.recentNews && research.recentNews.length > 0 && (
-        <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+        <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 animate-fade-in" style={{ animationDelay: '600ms' }}>
           <h3 className="font-semibold text-sm text-slate-400 mb-3 flex items-center gap-2">
             <Newspaper className="w-4 h-4" />
             RECENT NEWS
@@ -161,18 +166,21 @@ export default function CompanyIntel({ research }) {
   );
 }
 
-function CapabilityCard({ capability }) {
+function CapabilityCard({ capability }: { capability: CapabilityMapping }) {
   const [expanded, setExpanded] = useState(false);
   const score = capability.relevanceScore || 0;
   const hasContent = (capability.evidence?.length > 0) || (capability.talkingPoints?.length > 0);
 
+  // Relevance score as a colored progress bar
   const barColor = score >= 70 ? 'bg-emerald-500' : score >= 40 ? 'bg-amber-500' : 'bg-slate-600';
   const textColor = score >= 70 ? 'text-emerald-400' : score >= 40 ? 'text-amber-400' : 'text-slate-500';
 
   return (
     <div
       className={`rounded-lg border transition-colors ${
-        score >= 50 ? 'border-slate-600 bg-slate-900/40' : 'border-slate-700/50 bg-slate-900/20 opacity-70'
+        score >= 50
+                  ? 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/40'
+                  : 'border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/20 opacity-70'
       }`}
     >
       <button
@@ -185,7 +193,10 @@ function CapabilityCard({ capability }) {
         <div className="flex items-center gap-2 ml-3 shrink-0">
           <span className={`text-sm font-mono font-semibold ${textColor}`}>{score}%</span>
           <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full ${barColor}`} style={{ width: `${score}%` }} />
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+              style={{ width: `${score}%` }}
+            />
           </div>
         </div>
       </button>
@@ -214,7 +225,7 @@ function CapabilityCard({ capability }) {
             <div>
               <p className="text-xs text-slate-500 mb-1">Discovery Questions</p>
               {capability.questions.map((q, i) => (
-                <p key={i} className="text-xs text-slate-400 italic">"{q}"</p>
+                <p key={i} className="text-xs text-slate-400 italic">&ldquo;{q}&rdquo;</p>
               ))}
             </div>
           )}

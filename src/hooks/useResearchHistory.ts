@@ -1,40 +1,36 @@
 import { useState, useCallback } from 'react';
+import { STORAGE_KEYS, HISTORY_CONFIG } from '../config/appConfig';
+import type { HistoryEntry } from '../types';
 
-const STORAGE_KEY = 'warmlead-ai-history';
-const MAX_ENTRIES = 10;
-
-function loadHistory() {
+function loadHistory(): HistoryEntry[] {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEYS.history);
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-function saveHistory(entries) {
+function saveHistory(entries: HistoryEntry[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(entries));
   } catch {
     // localStorage full or unavailable
   }
 }
 
 /**
- * Hook for managing research history in localStorage
- *
- * Each entry: { companyName, timestamp, leadCount, topLeadName, topLeadTitle, productName }
+ * Hook for managing research history in localStorage.
  */
 export function useResearchHistory() {
-  const [history, setHistory] = useState(loadHistory);
+  const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
 
-  const addEntry = useCallback((entry) => {
+  const addEntry = useCallback((entry: Omit<HistoryEntry, 'timestamp'>) => {
     setHistory(prev => {
-      // Remove existing entry for same company if present
       const filtered = prev.filter(
         e => e.companyName.toLowerCase() !== entry.companyName.toLowerCase()
       );
-      const updated = [
+      const updated: HistoryEntry[] = [
         {
           companyName: entry.companyName,
           timestamp: Date.now(),
@@ -44,7 +40,7 @@ export function useResearchHistory() {
           productName: entry.productName || ''
         },
         ...filtered
-      ].slice(0, MAX_ENTRIES);
+      ].slice(0, HISTORY_CONFIG.maxEntries);
       saveHistory(updated);
       return updated;
     });
@@ -52,7 +48,7 @@ export function useResearchHistory() {
 
   const clearHistory = useCallback(() => {
     setHistory([]);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.history);
   }, []);
 
   return { history, addEntry, clearHistory };

@@ -10,16 +10,21 @@ const STATUS_MESSAGES = [
   { time: 90, text: 'Still working — thorough research takes time...' }
 ];
 
-export default function StatusBar({ isActive, mode }) {
+interface StatusBarProps {
+  isActive: boolean;
+  mode: 'leads' | 'intel' | null;
+}
+
+export default function StatusBar({ isActive, mode }: StatusBarProps) {
   const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(null);
-  const frameRef = useRef(null);
+  const startRef = useRef<number | null>(null);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isActive) {
       startRef.current = Date.now();
       const tick = () => {
-        setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+        setElapsed(Math.floor((Date.now() - (startRef.current || Date.now())) / 1000));
         frameRef.current = requestAnimationFrame(tick);
       };
       frameRef.current = requestAnimationFrame(tick);
@@ -41,20 +46,20 @@ export default function StatusBar({ isActive, mode }) {
   const modeLabel = mode === 'leads' ? 'Finding warm leads' : 'Researching company';
 
   return (
-    <div className="bg-slate-800/70 border border-slate-700 rounded-xl p-4 mb-6">
+    <div className="bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Loader2 className="w-5 h-5 animate-spin text-red-400" />
-            <div className="absolute inset-0 w-5 h-5 rounded-full bg-red-400/20 animate-ping" />
+            <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+            <div className="absolute inset-0 w-5 h-5 rounded-full bg-indigo-400/20 animate-ping" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white">{modeLabel}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">{modeLabel}</p>
             <p className="text-xs text-slate-400">{currentMessage}</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-lg font-mono font-semibold text-white">{elapsed}s</p>
+          <p className="text-lg font-mono font-semibold text-slate-900 dark:text-white">{elapsed}s</p>
           <p className="text-xs text-slate-500">elapsed</p>
         </div>
       </div>

@@ -1,5 +1,13 @@
+/**
+ * Competitive tool detection via job posting analysis.
+ */
+
+import { API_CONFIG } from '../config/appConfig';
+import { buildCompetitiveDetectionPrompt } from '../prompts/researchPrompt';
+import type { ToolInfo, EnrichedTool, CompetitiveResult, StrategicImplication } from '../types';
+
 // BI/Analytics tools to detect with their categories
-const TOOLS = {
+const TOOLS: Record<string, ToolInfo> = {
   // BI Platforms
   'Tableau': { category: 'BI Platform', vendor: 'Salesforce' },
   'Power BI': { category: 'BI Platform', vendor: 'Microsoft' },
@@ -42,74 +50,28 @@ const TOOLS = {
   'DataHub': { category: 'Data Governance', vendor: 'Open Source' },
 };
 
-// Build regex patterns for matching
-const buildToolPatterns = () => {
-  return Object.keys(TOOLS).map(tool => ({
-    name: tool,
-    pattern: new RegExp(`\\b${tool.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
-    ...TOOLS[tool]
-  }));
-};
-
-const TOOL_PATTERNS = buildToolPatterns();
-
-/**
- * Detect competitive tools from job posting search
- */
-export const detectCompetitiveTools = async (companyName) => {
-  const prompt = `Search for recent job postings from "${companyName}" that mention analytics, business intelligence, data engineering, or data analyst roles.
-
-Look for job listings on LinkedIn, Indeed, Glassdoor, or the company's careers page.
-
-For each relevant job posting you find, extract:
-1. The job title
-2. Any BI/analytics tools mentioned (Tableau, Power BI, Looker, Snowflake, Databricks, etc.)
-3. The source where you found it
-
-CRITICAL: Return ONLY valid JSON, no other text.
-
-JSON format:
-{
-  "companyName": "${companyName}",
-  "jobPostings": [
-    {
-      "title": "Senior Data Analyst",
-      "tools": ["Tableau", "Snowflake", "dbt"],
-      "source": "LinkedIn"
-    }
-  ],
-  "toolMentions": {
-    "Tableau": 3,
-    "Snowflake": 2,
-    "Power BI": 1
-  },
-  "summary": "Brief summary of the technology stack based on job postings"
-}
-
-If you cannot find job postings, return:
-{
-  "companyName": "${companyName}",
-  "jobPostings": [],
-  "toolMentions": {},
-  "summary": "No recent job postings found for analytics/BI roles"
-}`;
+/** Detect competitive tools from job posting search */
+export const detectCompetitiveTools = async (companyName: string): Promise<CompetitiveResult> => {
+  const prompt = buildCompetitiveDetectionPrompt(companyName);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
+  const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.competitiveTimeout);
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const response = await fetch(API_CONFIG.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': API_CONFIG.version,
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY || ''
+      },
       signal: controller.signal,
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: API_CONFIG.model,
         max_tokens: 2000,
-        messages: [{ role: "user", content: prompt }],
-        tools: [{
-          type: "web_search_20250305",
-          name: "web_search"
-        }]
+        messages: [{ role: 'user', content: prompt }],
+        tools: [API_CONFIG.webSearchTool]
       })
     });
 
@@ -122,13 +84,11 @@ If you cannot find job postings, return:
 
     const data = await response.json();
 
-    // Extract text from response
     let textContent = data.content
-      .filter(item => item.type === "text")
-      .map(item => item.text)
-      .join("");
+      .filter((item: { type: string }) => item.type === 'text')
+      .map((item: { text: string }) => item.text)
+      .join('');
 
-    // Clean up response
     textContent = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
@@ -137,8 +97,6 @@ If you cannot find job postings, return:
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-
-    // Enrich with tool metadata and calculate confidence
     const enrichedTools = enrichToolData(parsed.toolMentions || {});
 
     return {
@@ -146,27 +104,23 @@ If you cannot find job postings, return:
       enrichedTools,
       scanDate: new Date().toISOString()
     };
-
-  } catch (err) {
-    if (err.name === 'AbortError') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
       throw new Error('Competitive scan timed out. Try again later.');
     }
     throw err;
   }
 };
 
-/**
- * Enrich tool mentions with metadata and confidence scores
- */
-const enrichToolData = (toolMentions) => {
+/** Enrich tool mentions with metadata and confidence scores */
+const enrichToolData = (toolMentions: Record<string, number>): EnrichedTool[] => {
   const totalMentions = Object.values(toolMentions).reduce((a, b) => a + b, 0);
 
   return Object.entries(toolMentions)
-    .map(([toolName, count]) => {
+    .map(([toolName, count]): EnrichedTool => {
       const toolInfo = TOOLS[toolName] || { category: 'Unknown', vendor: 'Unknown' };
 
-      // Calculate confidence based on mention frequency
-      let confidence = 'Low';
+      let confidence: 'High' | 'Medium' | 'Low' = 'Low';
       if (count >= 3 || (totalMentions > 0 && count / totalMentions >= 0.3)) {
         confidence = 'High';
       } else if (count >= 2 || (totalMentions > 0 && count / totalMentions >= 0.15)) {
@@ -184,31 +138,33 @@ const enrichToolData = (toolMentions) => {
     .sort((a, b) => b.mentions - a.mentions);
 };
 
-/**
- * Get strategic implications based on detected tools
- */
-export const getStrategicImplications = (enrichedTools) => {
-  const implications = [];
+/** Get strategic implications based on detected tools */
+export const getStrategicImplications = (enrichedTools: EnrichedTool[]): StrategicImplication[] => {
+  const implications: StrategicImplication[] = [];
 
-  const hasBIPlatform = enrichedTools.some(t => t.category === 'BI Platform');
-  const hasDataPlatform = enrichedTools.some(t => t.category === 'Data Platform');
-  const hasSnowflake = enrichedTools.some(t => t.name === 'Snowflake');
-  const hasDatabricks = enrichedTools.some(t => t.name === 'Databricks');
   const hasTableau = enrichedTools.some(t => t.name === 'Tableau');
   const hasPowerBI = enrichedTools.some(t => t.name === 'Power BI');
   const hasLooker = enrichedTools.some(t => t.name === 'Looker');
+  const hasSnowflake = enrichedTools.some(t => t.name === 'Snowflake');
+  const hasDatabricks = enrichedTools.some(t => t.name === 'Databricks');
+  const hasBIPlatform = enrichedTools.some(t => t.category === 'BI Platform');
+  const hasDataPlatform = enrichedTools.some(t => t.category === 'Data Platform');
 
   if (hasTableau || hasPowerBI || hasLooker) {
+    const names = [hasTableau && 'Tableau', hasPowerBI && 'Power BI', hasLooker && 'Looker']
+      .filter(Boolean).join('/');
     implications.push({
       theme: 'portability-flexibility',
-      insight: `Currently using ${[hasTableau && 'Tableau', hasPowerBI && 'Power BI', hasLooker && 'Looker'].filter(Boolean).join('/')} - potential vendor lock-in. Strategy's open architecture could provide flexibility.`
+      insight: `Currently using ${names} - potential vendor lock-in. Strategy's open architecture could provide flexibility.`
     });
   }
 
   if (hasSnowflake || hasDatabricks) {
+    const names = [hasSnowflake && 'Snowflake', hasDatabricks && 'Databricks']
+      .filter(Boolean).join('/');
     implications.push({
       theme: 'semantic-layer',
-      insight: `Invested in ${[hasSnowflake && 'Snowflake', hasDatabricks && 'Databricks'].filter(Boolean).join('/')} - likely need a semantic layer to govern metrics across their data platform.`
+      insight: `Invested in ${names} - likely need a semantic layer to govern metrics across their data platform.`
     });
   }
 
@@ -228,5 +184,3 @@ export const getStrategicImplications = (enrichedTools) => {
 
   return implications;
 };
-
-export default { detectCompetitiveTools, getStrategicImplications };

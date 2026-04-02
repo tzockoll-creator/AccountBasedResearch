@@ -5,7 +5,9 @@
  * Users can modify these or create their own product configs.
  */
 
-export const STRATEGY_PRESET = {
+import type { ProductConfig } from '../types';
+
+export const STRATEGY_PRESET: ProductConfig = {
   productName: 'Strategy (MicroStrategy)',
   capabilities: [
     'Governed AI Analytics',
@@ -35,7 +37,7 @@ export const STRATEGY_PRESET = {
   ]
 };
 
-export const EMPTY_PRODUCT = {
+export const EMPTY_PRODUCT: ProductConfig = {
   productName: '',
   capabilities: [],
   painPoints: [],

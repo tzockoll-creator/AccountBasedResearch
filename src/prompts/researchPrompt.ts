@@ -1,73 +1,18 @@
 /**
- * Claude API Service
- *
- * Handles all Anthropic API calls for company research and warm lead finding.
- * Uses claude-sonnet-4-6 with web_search tool.
+ * Claude prompt templates for company research and warm lead finding.
+ * Extracted for easy iteration and testing.
  */
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-haiku-4-5-20251001';
-
-function getApiKey() {
-  return import.meta.env.VITE_ANTHROPIC_API_KEY || '';
-}
-
-function buildHeaders() {
-  const apiKey = getApiKey();
-  const headers = {
-    'Content-Type': 'application/json',
-    'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-access': 'true'
-  };
-  if (apiKey) {
-    headers['x-api-key'] = apiKey;
-  }
-  return headers;
-}
+import type { ProductConfig } from '../types';
 
 /**
- * Retry-aware fetch that handles 429 rate limits with backoff
+ * Build the company research prompt for mapping findings to product capabilities.
  */
-async function fetchWithRetry(url, options, maxRetries = 3) {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const response = await fetch(url, options);
-    if (response.status === 429 && attempt < maxRetries) {
-      const retryAfter = response.headers.get('retry-after');
-      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (attempt + 1) * 15000;
-      await new Promise(resolve => setTimeout(resolve, waitMs));
-      continue;
-    }
-    return response;
-  }
-}
-
-/**
- * Extract and parse JSON from Claude's response
- */
-function extractJSON(data) {
-  const textContent = data.content
-    .filter(item => item.type === 'text')
-    .map(item => item.text)
-    .join('');
-
-  let cleaned = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No valid JSON found in response');
-  }
-
-  return JSON.parse(jsonMatch[0]);
-}
-
-/**
- * Research a company and map findings to product capabilities
- */
-export async function researchCompany(companyName, productConfig, { signal } = {}) {
+export function buildResearchPrompt(companyName: string, productConfig: ProductConfig): string {
   const capabilitiesList = productConfig.capabilities.map((c, i) => `${i + 1}. ${c}`).join('\n');
   const painPointsList = productConfig.painPoints.map(p => `- ${p}`).join('\n');
 
-  const prompt = `You are an expert B2B sales researcher helping a sales team selling "${productConfig.productName}".
+  return `You are an expert B2B sales researcher helping a sales team selling "${productConfig.productName}".
 
 Analyze the company "${companyName}" and provide account research mapped to our product capabilities.
 
@@ -126,59 +71,17 @@ If a capability has no relevant findings, set relevanceScore to 0 and leave arra
 Be specific and cite actual business context where possible.
 
 Remember: Output ONLY the JSON object, nothing else.`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000);
-
-  // Combine external signal with timeout
-  if (signal) {
-    signal.addEventListener('abort', () => controller.abort());
-  }
-
-  try {
-    const response = await fetchWithRetry(API_URL, {
-      method: 'POST',
-      headers: buildHeaders(),
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4096,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(data.error.message || 'API returned an error');
-    }
-
-    return extractJSON(data);
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Request timed out. Try again or use a simpler company name.');
-    }
-    throw err;
-  }
 }
 
 /**
- * Find warm leads at a company - people publicly signaling pain points
+ * Build the warm leads finding prompt.
  */
-export async function findWarmLeads(companyName, productConfig, { signal } = {}) {
+export function buildWarmLeadsPrompt(companyName: string, productConfig: ProductConfig): string {
   const painPointsList = productConfig.painPoints.map(p => `- ${p}`).join('\n');
   const rolesList = productConfig.targetRoles.map(r => `- ${r}`).join('\n');
   const capabilitiesList = productConfig.capabilities.map(c => `- ${c}`).join('\n');
 
-  const prompt = `You are an expert B2B sales intelligence researcher. Your job is to find "warm leads" — real people at "${companyName}" who are publicly signaling pain points that "${productConfig.productName}" solves.
+  return `You are an expert B2B sales intelligence researcher. Your job is to find "warm leads" — real people at "${companyName}" who are publicly signaling pain points that "${productConfig.productName}" solves.
 
 PRODUCT CONTEXT:
 Product: ${productConfig.productName}
@@ -247,45 +150,46 @@ JSON format:
 }
 
 Remember: Output ONLY the JSON object, nothing else. Quality over quantity — 3 real leads beat 10 fabricated ones.`;
+}
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 150000); // 2.5 min timeout for deeper search
+/**
+ * Build the competitive detection prompt for scanning job postings.
+ */
+export function buildCompetitiveDetectionPrompt(companyName: string): string {
+  return `Search for recent job postings from "${companyName}" that mention analytics, business intelligence, data engineering, or data analyst roles.
 
-  if (signal) {
-    signal.addEventListener('abort', () => controller.abort());
-  }
+Look for job listings on LinkedIn, Indeed, Glassdoor, or the company's careers page.
 
-  try {
-    const response = await fetchWithRetry(API_URL, {
-      method: 'POST',
-      headers: buildHeaders(),
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 8192,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+For each relevant job posting you find, extract:
+1. The job title
+2. Any BI/analytics tools mentioned (Tableau, Power BI, Looker, Snowflake, Databricks, etc.)
+3. The source where you found it
 
-    clearTimeout(timeoutId);
+CRITICAL: Return ONLY valid JSON, no other text.
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error ${response.status}: ${errorText}`);
+JSON format:
+{
+  "companyName": "${companyName}",
+  "jobPostings": [
+    {
+      "title": "Senior Data Analyst",
+      "tools": ["Tableau", "Snowflake", "dbt"],
+      "source": "LinkedIn"
     }
+  ],
+  "toolMentions": {
+    "Tableau": 3,
+    "Snowflake": 2,
+    "Power BI": 1
+  },
+  "summary": "Brief summary of the technology stack based on job postings"
+}
 
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(data.error.message || 'API returned an error');
-    }
-
-    return extractJSON(data);
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Request timed out. Lead searches can take up to 2 minutes with deep web search.');
-    }
-    throw err;
-  }
+If you cannot find job postings, return:
+{
+  "companyName": "${companyName}",
+  "jobPostings": [],
+  "toolMentions": {},
+  "summary": "No recent job postings found for analytics/BI roles"
+}`;
 }

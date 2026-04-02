@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Save, RotateCcw, Package } from 'lucide-react';
 import { STRATEGY_PRESET } from '../config/defaultProduct';
+import { STORAGE_KEYS } from '../config/appConfig';
+import type { ProductConfig as ProductConfigType } from '../types';
 
-const STORAGE_KEY = 'warmlead-ai-product-config';
-
-function loadSavedConfig() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
+interface ProductConfigProps {
+  productConfig: ProductConfigType;
+  onConfigChange: (config: ProductConfigType) => void;
 }
 
-export default function ProductConfig({ productConfig, onConfigChange }) {
+export default function ProductConfig({ productConfig, onConfigChange }: ProductConfigProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localName, setLocalName] = useState(productConfig.productName);
   const [localCapabilities, setLocalCapabilities] = useState(
@@ -28,7 +24,7 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
-    const config = {
+    const config: ProductConfigType = {
       productName: localName.trim(),
       capabilities: localCapabilities.split('\n').map(s => s.trim()).filter(Boolean),
       painPoints: localPainPoints.split('\n').map(s => s.trim()).filter(Boolean),
@@ -36,7 +32,7 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
     };
     onConfigChange(config);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      localStorage.setItem(STORAGE_KEYS.productConfig, JSON.stringify(config));
     } catch {
       // ignore
     }
@@ -53,7 +49,7 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
   };
 
   return (
-    <div className="bg-slate-800/60 rounded-xl border border-slate-700 mb-6 overflow-hidden">
+    <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 mb-6 overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-5 py-3 flex items-center justify-between hover:bg-slate-800/80 transition-colors"
@@ -91,7 +87,7 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
               value={localName}
               onChange={e => setLocalName(e.target.value)}
               placeholder="e.g., Strategy, Snowflake, Databricks"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500"
             />
           </div>
 
@@ -103,8 +99,8 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
               value={localCapabilities}
               onChange={e => setLocalCapabilities(e.target.value)}
               rows={4}
-              placeholder="Governed AI Analytics&#10;Semantic Layer&#10;Self-Service BI"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 resize-y"
+              placeholder={'Governed AI Analytics\nSemantic Layer\nSelf-Service BI'}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500 resize-y"
             />
           </div>
 
@@ -116,8 +112,8 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
               value={localPainPoints}
               onChange={e => setLocalPainPoints(e.target.value)}
               rows={5}
-              placeholder="inconsistent metrics across teams&#10;BI tool sprawl&#10;AI hallucinations from ungoverned data"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 resize-y"
+              placeholder={'inconsistent metrics across teams\nBI tool sprawl\nAI hallucinations from ungoverned data'}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500 resize-y"
             />
           </div>
 
@@ -129,8 +125,8 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
               value={localRoles}
               onChange={e => setLocalRoles(e.target.value)}
               rows={3}
-              placeholder="CDO / CTO / CIO&#10;Director of Data&#10;Data Architect"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 resize-y"
+              placeholder={'CDO / CTO / CIO\nDirector of Data\nData Architect'}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500 resize-y"
             />
           </div>
 
@@ -155,5 +151,3 @@ export default function ProductConfig({ productConfig, onConfigChange }) {
     </div>
   );
 }
-
-ProductConfig.loadSavedConfig = loadSavedConfig;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ExternalLink, MessageSquare, Filter } from 'lucide-react';
+import type { WarmLead } from '../types';
 
-const SOURCE_STYLES = {
+const SOURCE_STYLES: Record<string, string> = {
   LinkedIn: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
   Reddit: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
   Blog: 'bg-green-500/20 text-green-300 border-green-500/30',
@@ -9,32 +10,35 @@ const SOURCE_STYLES = {
   'Job Posting': 'bg-amber-500/20 text-amber-300 border-amber-500/30'
 };
 
-function getSourceStyle(source) {
+function getSourceStyle(source: string | undefined): string {
   const key = Object.keys(SOURCE_STYLES).find(k =>
     source?.toLowerCase().includes(k.toLowerCase())
   );
-  return SOURCE_STYLES[key] || 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+  return SOURCE_STYLES[key || ''] || 'bg-slate-500/20 text-slate-300 border-slate-500/30';
 }
 
-function scoreColor(score) {
+function scoreColor(score: number): string {
   if (score >= 70) return 'bg-emerald-500';
   if (score >= 40) return 'bg-amber-500';
   return 'bg-red-500';
 }
 
-function scoreTextColor(score) {
+function scoreTextColor(score: number): string {
   if (score >= 70) return 'text-emerald-400';
   if (score >= 40) return 'text-amber-400';
   return 'text-red-400';
 }
 
-function LeadCard({ lead }) {
+function LeadCard({ lead, index }: { lead: WarmLead; index: number }) {
   return (
-    <div className="bg-slate-800/70 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-colors">
+    <div
+      className="bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 animate-fade-in"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
       {/* Header: Name + Score */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white text-base truncate">{lead.name}</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-white text-base truncate">{lead.name}</h3>
           <p className="text-sm text-slate-400 truncate">{lead.title}</p>
         </div>
         <div className="flex items-center gap-2 ml-3 shrink-0">
@@ -43,7 +47,7 @@ function LeadCard({ lead }) {
           </div>
           <div className="w-12 h-2 bg-slate-700 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full ${scoreColor(lead.relevanceScore)}`}
+              className={`h-full rounded-full transition-all duration-500 ${scoreColor(lead.relevanceScore)}`}
               style={{ width: `${lead.relevanceScore}%` }}
             />
           </div>
@@ -66,7 +70,7 @@ function LeadCard({ lead }) {
       {lead.detectedPainPoints && lead.detectedPainPoints.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {lead.detectedPainPoints.map((pp, i) => (
-            <span key={i} className="text-xs px-2 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/20">
+            <span key={i} className="text-xs px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">
               {pp}
             </span>
           ))}
@@ -75,7 +79,7 @@ function LeadCard({ lead }) {
 
       {/* Content/context quote */}
       {lead.content && (
-        <div className="bg-slate-900/60 rounded-lg p-3 mb-3 border-l-2 border-slate-600">
+        <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-3 mb-3 border-l-2 border-slate-300 dark:border-slate-600">
           <p className="text-xs text-slate-300 leading-relaxed line-clamp-4">
             {lead.content}
           </p>
@@ -90,7 +94,7 @@ function LeadCard({ lead }) {
             <span className="text-xs font-medium text-violet-400">Outreach Angle</span>
           </div>
           <p className="text-xs text-violet-200 italic leading-relaxed">
-            "{lead.outreachAngle}"
+            &ldquo;{lead.outreachAngle}&rdquo;
           </p>
         </div>
       )}
@@ -111,9 +115,14 @@ function LeadCard({ lead }) {
   );
 }
 
-export default function LeadsGrid({ leads, companyName }) {
-  const [sourceFilter, setSourceFilter] = useState(null);
-  const [painPointFilter, setPainPointFilter] = useState(null);
+interface LeadsGridProps {
+  leads: WarmLead[];
+  companyName: string;
+}
+
+export default function LeadsGrid({ leads, companyName }: LeadsGridProps) {
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [painPointFilter, setPainPointFilter] = useState<string | null>(null);
 
   if (!leads || leads.length === 0) {
     return (
@@ -123,11 +132,9 @@ export default function LeadsGrid({ leads, companyName }) {
     );
   }
 
-  // Collect unique sources and pain points for filters
   const allSources = [...new Set(leads.map(l => l.source).filter(Boolean))];
   const allPainPoints = [...new Set(leads.flatMap(l => l.detectedPainPoints || []))];
 
-  // Apply filters
   let filtered = leads;
   if (sourceFilter) {
     filtered = filtered.filter(l => l.source === sourceFilter);
@@ -138,7 +145,6 @@ export default function LeadsGrid({ leads, companyName }) {
     );
   }
 
-  // Sort by relevance score descending
   const sorted = [...filtered].sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
 
   return (
@@ -188,8 +194,8 @@ export default function LeadsGrid({ leads, companyName }) {
                   onClick={() => setPainPointFilter(painPointFilter === pp ? null : pp)}
                   className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
                     painPointFilter === pp
-                      ? 'bg-red-500 text-white'
-                      : 'bg-red-500/15 text-red-300 border border-red-500/20 hover:bg-red-500/25'
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/25'
                   }`}
                 >
                   {pp}
@@ -209,7 +215,7 @@ export default function LeadsGrid({ leads, companyName }) {
       {/* Grid */}
       <div className="grid gap-4 md:grid-cols-2">
         {sorted.map((lead, idx) => (
-          <LeadCard key={`${lead.name}-${idx}`} lead={lead} />
+          <LeadCard key={`${lead.name}-${idx}`} lead={lead} index={idx} />
         ))}
       </div>
     </div>
